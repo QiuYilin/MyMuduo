@@ -1,3 +1,4 @@
+#include "temp_utils.h"
 #include "InetAddress.h"
 
 #include <string.h>
@@ -13,7 +14,7 @@ InetAddress::InetAddress(uint16_t port, std::string ip) {
     addr_.sin_addr.s_addr = ::inet_addr(ip.c_str());
   }
   else{
-    //错误处理
+    error_handling("Invalid ip address!");
   }
 }
 
