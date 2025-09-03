@@ -1,4 +1,4 @@
-#include "temp_utils.h"
+#include "utils.h"
 #include "InetAddress.h"
 
 #include <string.h>
@@ -10,12 +10,9 @@ InetAddress::InetAddress(uint16_t port, std::string ip) {
   addr_.sin_port = ::htons(port);
   struct in_addr addr;
   memset(&addr, 0, sizeof(addr));
-  if (::inet_aton(ip.c_str(), &addr)) {
-    addr_.sin_addr.s_addr = ::inet_addr(ip.c_str());
-  }
-  else{
-    error_handling("Invalid ip address!");
-  }
+  int ret = ::inet_aton(ip.c_str(), &addr);
+  perror_if(ret==0,"address");
+  addr_.sin_addr.s_addr = ::inet_addr(ip.c_str());
 }
 
 std::string InetAddress::toIp() const {

@@ -4,23 +4,18 @@
 #include <string.h>
 
 #include "InetAddress.h"
-#include "temp_utils.h"
+#include "utils.h"
 
 void Socket::bindAddress(const InetAddress &localaddr) {
-  if (0 != ::bind(sockfd_, (sockaddr *)localaddr.getSockAddr(),
-                  sizeof(sockaddr_in))) {
-    char message[100];
-    sprintf(message, "bind sockfd:%d fail\n", sockfd_);
-    error_handling(message);
-  }
+  int ret = ::bind(sockfd_, (sockaddr *)localaddr.getSockAddr(),
+                  sizeof(sockaddr_in));
+  perror_if(ret!=0,"bind");
 }
 
 void Socket::listen() {
-  if (::listen(sockfd_, 1024) != 0) {
-    char message[100];
-    sprintf(message, "listen sockfd:%d fail\n", sockfd_);
-    error_handling(message);
-  }
+  int ret = ::listen(sockfd_, 1024);
+    
+  perror_if(ret!=0,"listen");
 }
 
 int Socket::accept(InetAddress *peeraddr) {
@@ -38,9 +33,8 @@ int Socket::accept(InetAddress *peeraddr) {
 }
 
 void Socket::shutdownWrite() {
-  if (::shutdown(sockfd_, SHUT_WR) < 0) {
-    error_handling("shutdownWrite error");
-  }
+  int ret = ::shutdown(sockfd_, SHUT_WR);
+  perror_if(ret < 0,"shutdown write");
 }
 
 void Socket::setTcpNoDelay(bool on) {

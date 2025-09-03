@@ -17,10 +17,10 @@ set(HEADER_FILES
   # include/EventLoop.h
   # include/EventLoopThread.h
   # include/EventLoopThreadPool.h
-  include/temp_utils.h
+  include/utils.h
   include/InetAddress.h
   include/Socket.h
-  include/Poller.h
+  include/Epoll.h
   # include/Logger.h
   # include/noncopyable.h
   
@@ -41,9 +41,9 @@ set(SOURCE_FILES
   # src/EventLoop.cc
   # src/EventLoopThread.cc
   # src/EventLoopThreadPool.cc
-  src/InetAddress.cc
-  src/Socket.cc
-  src/Poller.cc
+  src/InetAddress.cpp
+  src/Socket.cpp
+  src/Epoll.cpp
   # src/Logger.cc
   
 
