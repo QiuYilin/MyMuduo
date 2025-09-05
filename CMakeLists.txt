@@ -14,7 +14,7 @@ set(HEADER_FILES
   
   # include/CurrentThread.h
   # include/EPollPoller.h
-  # include/EventLoop.h
+  
   # include/EventLoopThread.h
   # include/EventLoopThreadPool.h
   include/utils.h
@@ -22,6 +22,7 @@ set(HEADER_FILES
   include/Socket.h
   include/Epoll.h
   include/Channel.h
+  include/EventLoop.h
   # include/Logger.h
   # include/noncopyable.h
   
@@ -38,13 +39,14 @@ set(SOURCE_FILES
   # src/CurrentThread.cc
   # src/DefaultPoller.cc
   # src/EPollPoller.cc
-  # src/EventLoop.cc
+ 
   # src/EventLoopThread.cc
   # src/EventLoopThreadPool.cc
   src/InetAddress.cpp
   src/Socket.cpp
   src/Epoll.cpp
   src/Channel.cpp
+  src/EventLoop.cpp
   # src/Logger.cc
   
 

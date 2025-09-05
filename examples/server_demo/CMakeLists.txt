@@ -1,5 +1,7 @@
 set(SOURCE_FILES
     main.cpp
+    Server.h
+    Server.cpp
 )
 
 add_executable(server_demo
