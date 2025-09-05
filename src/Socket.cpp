@@ -1,10 +1,9 @@
 #include "Socket.h"
-
-#include <netinet/tcp.h>
 #include <string.h>
 
 #include "InetAddress.h"
 #include "utils.h"
+#include <fcntl.h>
 
 void Socket::bindAddress(const InetAddress &localaddr) {
   int ret = ::bind(sockfd_, (sockaddr *)localaddr.getSockAddr(),
@@ -22,10 +21,10 @@ int Socket::accept(InetAddress *peeraddr) {
   sockaddr_in addr;
   socklen_t len = sizeof(addr);
   ::memset(&addr, 0, sizeof(addr));
-  // int connfd = ::accept(sockfd_,(sockaddr *)&addr,&len);
-  int connfd =
-      ::accept4(sockfd_, (sockaddr *)&addr, &len,
-                SOCK_NONBLOCK | SOCK_CLOEXEC);  // 配合epoll边缘触发设置为非阻塞
+  int connfd = ::accept(sockfd_,(sockaddr *)&addr,&len);
+  // int connfd =
+  //     ::accept4(sockfd_, (sockaddr *)&addr, &len,
+  //               SOCK_NONBLOCK | SOCK_CLOEXEC);  //线程安全的方法
   if (connfd >= 0) {
     peeraddr->setSockAddr(addr);
   }
@@ -55,4 +54,10 @@ void Socket::setReusePort(bool on) {
 void Socket::setKeepAlive(bool on){
   int optval = on ? 1:0;
   ::setsockopt(sockfd_,SOL_SOCKET,SO_KEEPALIVE,&optval,sizeof(optval));
+}
+
+void Socket::setNonblock(){
+  int flag = ::fcntl(sockfd_, F_GETFL);
+  flag |= O_NONBLOCK;
+  fcntl(sockfd_,F_SETFL,flag);
 }

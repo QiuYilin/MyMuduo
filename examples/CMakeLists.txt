@@ -1,1 +1,2 @@
 add_subdirectory(test_InetAddress_demo)
+add_subdirectory(server_demo)
