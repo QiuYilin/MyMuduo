@@ -8,7 +8,6 @@ set(INSTALL_CMAKEDIR share/${project_name})
 option(BUILD_EXAMPLES "Build examples" ON)
 
 set(HEADER_FILES
-  # include/Acceptor.h
   # include/Buffer.h
   # include/Callbacks.h
   
@@ -23,6 +22,7 @@ set(HEADER_FILES
   include/Epoll.h
   include/Channel.h
   include/EventLoop.h
+  include/Acceptor.h
   # include/Logger.h
   # include/noncopyable.h
   
@@ -34,7 +34,6 @@ set(HEADER_FILES
 )
 
 set(SOURCE_FILES
-  # src/Acceptor.cc
   # src/Buffer.cc
   # src/CurrentThread.cc
   # src/DefaultPoller.cc
@@ -47,6 +46,7 @@ set(SOURCE_FILES
   src/Epoll.cpp
   src/Channel.cpp
   src/EventLoop.cpp
+  src/Acceptor.cpp
   # src/Logger.cc
   
 

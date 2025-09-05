@@ -30,3 +30,7 @@ void Channel::handleEvent() {
     readCallback_();
   }
 }
+
+void Channel::remove(){
+    loop_->removeChannel(this);
+}

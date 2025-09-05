@@ -23,7 +23,9 @@ class Channel {
   void setInEpoll(bool in);
   int Fd() const;
 
-  void setCallback(ReadEventCallback cb) {
+  void remove();
+
+  void setReadCallback(ReadEventCallback cb) {
     readCallback_=std::move(cb);
   }
 

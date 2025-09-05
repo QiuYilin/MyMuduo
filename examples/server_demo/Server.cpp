@@ -1,27 +1,22 @@
 #include "Server.h"
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 const int READ_BUFFER = 1024;
 
-Server::Server(const InetAddress& listenAddr,EventLoop *eventloop):loop_(eventloop),serv_socket_(new Socket){
-    serv_socket_->bindAddress(listenAddr);
-    serv_socket_->listen();
-    serv_socket_->setNonblock();
+void setNonblock(int sockfd){
+    int flag = fcntl(sockfd,F_GETFL);
+    flag |= O_NONBLOCK;
+    fcntl(sockfd, F_SETFL, flag);
+}
 
-    serv_channel_=new Channel(loop_,serv_socket_->fd());
-    auto cb = [this](){newConnection(serv_socket_);};
-    serv_channel_->setCallback(cb);
-    serv_channel_->enableReading();
+Server::Server(const InetAddress& listenAddr,EventLoop *eventloop):loop_(eventloop),acceptor_(std::make_unique<Acceptor>(listenAddr,loop_)){
+    auto cb = [this](int sockfd){newConnection(sockfd);};
+    acceptor_->setNewconnectionCallback(cb);
 }
 
 Server::~Server(){
-    if(serv_socket_){
-        delete serv_socket_;
-    }
-    if(serv_channel_){
-        delete serv_channel_;
-    }
 }
 
 void Server::handleEvent(Channel* ch){
@@ -44,12 +39,10 @@ void Server::handleEvent(Channel* ch){
     }
 }
 
-void Server::newConnection(Socket *serv_sock){
-    InetAddress cliaddr;
-    Socket* cli_socket = new Socket(serv_sock->accept(&cliaddr));
-    cli_socket->setNonblock();
-    Channel *channel = new Channel(loop_,cli_socket->fd());
+void Server::newConnection(int sockfd){
+    setNonblock(sockfd);
+    Channel *channel = new Channel(loop_,sockfd);
     auto cb = [this,channel](){handleEvent(channel);};
-    channel->setCallback(cb);
+    channel->setReadCallback(cb);
     channel->enableReading();
 }

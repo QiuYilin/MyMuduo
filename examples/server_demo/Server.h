@@ -6,15 +6,16 @@
 #include <utils.h>
 #include <EventLoop.h>
 #include <InetAddress.h>
+#include <Acceptor.h>
+#include <memory>
 
 class Server{
 public:
     Server(const InetAddress& serverAddr,EventLoop* eventloop);
     ~Server();
     void handleEvent(Channel*ch);
-    void newConnection(Socket* serv_sock);
+    void newConnection(int sockfd);
 private:
     EventLoop* loop_;
-    Socket *serv_socket_;
-    Channel *serv_channel_;
+    std::unique_ptr<Acceptor> acceptor_;
 };
