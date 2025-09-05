@@ -2,6 +2,8 @@
 #include <sys/epoll.h>
 #include <vector>
 
+class Channel;
+
 /// @brief 包装epoll()函数
 class Epoll{
 public:
@@ -9,23 +11,18 @@ public:
     Epoll();
     /// @brief 删除所有事件
     ~Epoll();
-    Epoll(const Epoll& other) = delete;
-    Epoll& operator=(const Epoll& other)=delete;
 
-    /// @brief 包装epoll_ctl
-    /// @param sockfd 
-    /// @param events 
-    /// @param op 
-    void update(int sockfd,int events,int op);
+    /// @brief 
+    /// @param ch 
+    void updateChannel(Channel* ch);
 
-    /// @brief 额外包装epoll_ctl中删除文件描述符的操作
-    /// @param fd 
-    void epoll_delete(int fd);
-
+    /// @brief 
+    /// @param ch 
+    void del(Channel* ch);
     /// @brief 包装epoll_wait
     /// @param active 
     /// @param timeout 
-    void epoll_wait(std::vector<epoll_event>& active, int timeout=10);
+    void epoll_wait(std::vector<Channel*>& active, int timeout=10);
 private:
     int epfd_;
     struct epoll_event* events_;
