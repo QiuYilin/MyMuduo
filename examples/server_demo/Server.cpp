@@ -21,18 +21,18 @@ Server::~Server(){
 
 void Server::handleEvent(Channel* ch){
     int fd = ch->Fd();
-    char buf[READ_BUFFER];
-    memset(buf,0,sizeof(buf));
+    int saveErrno;
 
-    ssize_t bytes_read = read(fd,buf,sizeof(buf));
-    if(bytes_read>0){
-        printf("client fd %d says: %s\n",fd,buf);
-        write(fd,buf,bytes_read);
+    auto len = inputBuffer_.readFd(fd,&saveErrno);
+    if(len>0){
+        auto msg = inputBuffer_.retrieveAllAsString().c_str();
+        printf("client fd %d says: %s\n",fd,msg);
+        write(fd,msg,len);
     }
-    else if(bytes_read == -1){
+    else if(len == -1){
         perror("read");
     }
-    else if(bytes_read ==0){
+    else if(len ==0){
         printf("client fd %d disconnected\n",fd);
         loop_->removeChannel(ch);
         close(fd);
