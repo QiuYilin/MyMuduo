@@ -1,48 +1,47 @@
 #include "Server.h"
+
+#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
 
 const int READ_BUFFER = 1024;
 
-void setNonblock(int sockfd){
-    int flag = fcntl(sockfd,F_GETFL);
-    flag |= O_NONBLOCK;
-    fcntl(sockfd, F_SETFL, flag);
+void setNonblock(int sockfd) {
+  int flag = fcntl(sockfd, F_GETFL);
+  flag |= O_NONBLOCK;
+  fcntl(sockfd, F_SETFL, flag);
 }
 
-Server::Server(const InetAddress& listenAddr,EventLoop *eventloop):loop_(eventloop),acceptor_(std::make_unique<Acceptor>(listenAddr,loop_)){
-    auto cb = [this](int sockfd){newConnection(sockfd);};
-    acceptor_->setNewconnectionCallback(cb);
+Server::Server(const InetAddress& listenAddr, EventLoop* eventloop)
+    : loop_(eventloop),
+      acceptor_(std::make_unique<Acceptor>(listenAddr, loop_)) {
+  auto cb = [this](int sockfd) { newConnection(sockfd); };
+  acceptor_->setNewconnectionCallback(cb);
 }
 
-Server::~Server(){
+Server::~Server() {
+  for (auto& item : connections_) {
+    ConnectionPtr conn(item.second);
+    item.second.reset();
+    conn->connectDestroyed();
+  }
 }
 
-void Server::handleEvent(Channel* ch){
-    int fd = ch->Fd();
-    int saveErrno;
+void Server::newConnection(int sockfd) {
+  setNonblock(sockfd);
+  auto conn = std::make_shared<Connection>(loop_, sockfd);
+  printf("newconnection make_shared user_count= %ld\n", conn.use_count());
+  connections_[sockfd] = conn;
+  printf("connections_[sockfd] = conn user_count = %ld\n", conn.use_count());
 
-    auto len = inputBuffer_.readFd(fd,&saveErrno);
-    if(len>0){
-        auto msg = inputBuffer_.retrieveAllAsString().c_str();
-        printf("client fd %d says: %s\n",fd,msg);
-        write(fd,msg,len);
-    }
-    else if(len == -1){
-        perror("read");
-    }
-    else if(len ==0){
-        printf("client fd %d disconnected\n",fd);
-        loop_->removeChannel(ch);
-        close(fd);
-    }
+  conn->setMessageCallback(messageCallback_);
+  conn->setCloseCallback([this](const ConnectionPtr& connection) {
+    removeConnection(connection);
+  });
 }
 
-void Server::newConnection(int sockfd){
-    setNonblock(sockfd);
-    Channel *channel = new Channel(loop_,sockfd);
-    auto cb = [this,channel](){handleEvent(channel);};
-    channel->setReadCallback(cb);
-    channel->enableReading();
+void Server::removeConnection(const ConnectionPtr& conn) {
+  auto n = connections_.erase(conn->fd());
+  assert(n == 1);
+  conn->connectDestroyed();
 }

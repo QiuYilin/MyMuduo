@@ -14,11 +14,6 @@ void Channel::setRevents(int revents) { revents_ = revents; }
 
 int Channel::Revent() const { return revents_; }
 
-void Channel::enableReading() {
-  setEvents(EPOLLIN);
-  loop_->updateChannel(this);
-}
-
 bool Channel::isInEpoll() { return isInEpoll_ == true; }
 
 void Channel::setInEpoll(bool in) { isInEpoll_ = in; }
@@ -26,11 +21,14 @@ void Channel::setInEpoll(bool in) { isInEpoll_ = in; }
 int Channel::Fd() const { return fd_; }
 
 void Channel::handleEvent() {
-  if (readCallback_) {
-    readCallback_();
+  if (revents_ & (EPOLLIN | EPOLLPRI | EPOLLRDHUP)) {  // ���ڶ����¼�
+    if (readCallback_) readCallback_();
+  }
+  if (revents_ & EPOLLOUT) {  // ����д���¼�
+    if (writeCallback_) writeCallback_();
   }
 }
 
-void Channel::remove(){
-    loop_->removeChannel(this);
-}
+void Channel::remove() { loop_->removeChannel(this); }
+
+void Channel::update() { loop_->updateChannel(this); }

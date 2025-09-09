@@ -23,11 +23,13 @@ set(HEADER_FILES
   include/EventLoop.h
   include/Acceptor.h
   include/Buffer.h
+  include/Callbacks.h
+  include/Connection.h
   # include/Logger.h
   # include/noncopyable.h
   
 
-  # include/TcpConnection.h
+  
   # include/TcpServer.h
   # include/Thread.h
   # include/Timestamp.h
@@ -47,10 +49,11 @@ set(SOURCE_FILES
   src/EventLoop.cpp
   src/Acceptor.cpp
   src/Buffer.cpp
+  src/Connection.cpp
   # src/Logger.cc
   
 
-  # src/TcpConnection.cc
+  
   # src/TcpServer.cc
   # src/Thread.cc
   # src/Timestamp.cc
