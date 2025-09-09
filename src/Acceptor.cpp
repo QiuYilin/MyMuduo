@@ -1,32 +1,41 @@
-#include "Acceptor.h"
+#include"Acceptor.h"
 
-Acceptor::Acceptor(const InetAddress& listenAddr, EventLoop* eventloop)
-    : loop_(eventloop),
-      acceptSocket_(Socket()),
-      acceptChannel_(loop_, acceptSocket_.fd()),
-      listen_(false) {
-  acceptSocket_.bindAddress(listenAddr);
+Acceptor::Acceptor(const InetAddr& listenAddr, EventLoop* eventloop)
+	:loop_(eventloop)
+	,acceptSocket_(Socket())
+	,acceptChannel_(loop_,acceptSocket_.fd())
+	,listen_(false)
+{
+	acceptSocket_.bindAddress(listenAddr);
+	
+	auto cb = [this]() {handleRead(); };
+	acceptChannel_.setReadCallback(cb);
 
-  auto cb = [this]() { handleRead(); };
-  acceptChannel_.setReadCallback(cb);
-  this->listen();
+	this->listen();
 }
 
-Acceptor::~Acceptor() { acceptChannel_.remove(); }
-
-void Acceptor::listen() {
-  acceptSocket_.listen();
-  acceptChannel_.enableReading();
+Acceptor::~Acceptor()
+{
+	acceptChannel_.disableAll();
+	acceptChannel_.remove();
+}
+void Acceptor::listen()
+{
+	acceptSocket_.listen();
+	acceptChannel_.enableReading();
+	listen_ = true;
 }
 
-void Acceptor::handleRead() {
-  InetAddress peerAddr;
-  int connfd = acceptSocket_.accept(&peerAddr);
-  if (connfd >= 0) {
-    if (connfd >= 0) {
-      if (NewConnectionCallback_) {
-        NewConnectionCallback_(connfd);
-      }
-    }
-  }
+void Acceptor::handleRead()
+{
+	InetAddr peerAddr;
+	int connfd = acceptSocket_.accept(&peerAddr);
+	if (connfd >= 0) {
+		if (newConnectionCallback_) {
+			newConnectionCallback_(connfd,peerAddr);
+		}
+	}
+	else {
+		printf("accpet error\n");
+	}
 }

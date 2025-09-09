@@ -1,10 +1,10 @@
 #include "utils.h"
-#include "InetAddress.h"
+#include "InetAddr.h"
 
 #include <string.h>
 #include <strings.h>
 
-InetAddress::InetAddress(uint16_t port, std::string ip) {
+InetAddr::InetAddr(uint16_t port, std::string ip) {
   ::memset(&addr_, 0, sizeof(addr_));
   addr_.sin_family = AF_INET;
   addr_.sin_port = ::htons(port);
@@ -15,13 +15,13 @@ InetAddress::InetAddress(uint16_t port, std::string ip) {
   addr_.sin_addr.s_addr = ::inet_addr(ip.c_str());
 }
 
-std::string InetAddress::toIp() const {
+std::string InetAddr::toIp() const {
   char buf[64] = {0};
   ::inet_ntop(AF_INET, &addr_.sin_addr, buf, sizeof buf);
   return buf;
 }
 
-std::string InetAddress::toIpPort() const {
+std::string InetAddr::toIpPort() const {
   char buf[64] = {0};
   ::inet_ntop(AF_INET, &addr_.sin_addr, buf, sizeof buf);
   size_t end = ::strlen(buf);
@@ -30,4 +30,4 @@ std::string InetAddress::toIpPort() const {
   return buf;
 }
 
-uint16_t InetAddress::toPort() const { return ::ntohs(addr_.sin_port); }
+uint16_t InetAddr::toPort() const { return ::ntohs(addr_.sin_port); }

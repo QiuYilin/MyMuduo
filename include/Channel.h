@@ -1,84 +1,70 @@
 #pragma once
-#include <functional>
-#include <unistd.h>
-#include <fcntl.h>
-#include "Epoll.h"
-
+#include<functional>
+#include<unistd.h>
+#include<fcntl.h>
+#include<memory>
+#include"Epoll.h"
 class EventLoop;
-class Channel {
- public:
-  //using ReadEventCallback = std::function<void()>;
-  using EventCallback = std::function<void()>;
 
-  Channel(EventLoop *loop, int fd);
+class Channel
+{
+public:
+	using ReadEventCallback = std::function<void()>;
+	using EventCallback = std::function<void()>;
 
-  /// @brief 设置关心的events
-  /// @param events
-  void setEvents(int events);
-  /// @brief 返回events
-  /// @return
-  int Event() const;
-  void setRevents(int events);
-  int Revent() const;
 
-  bool isInEpoll();
-  void setInEpoll(bool in);
-  int Fd() const;
+public:
+	//Channel(Epoll* ep, int fd);
+	Channel(EventLoop* loop, int fd);
 
-  void setReadCallback(EventCallback cb) {
-    readCallback_=std::move(cb);
-  }
-  void setWriteCallback(EventCallback cb){
-    writeCallback_=std::move(cb);
-  }
-  void setCloseCallback(EventCallback cb){
-    CloseCallback_=std::move(cb);
-  }
 
-  /// @brief 包装epoll添加fd的操作
-  void enableReading(){
-    events_ |= (EPOLLIN|EPOLLPRI);
-    update();
-  }
-  void disableReading(){
-    events_ &= ~(EPOLLIN|EPOLLPRI);
-    update();
-  }
-  void enableWriting(){
-    events_ |= EPOLLOUT;
-    update();
-  }
-  void disableWriting(){
-    events_&=~EPOLLOUT;
-    update();
-  }
-  void disableAll(){
-    events_=0;
-    update();
-  }
+	void setEvents(int events);
+	int Event()const;
+	void setRevents(int events);
+	int Revent()const;
 
-  bool isNoneEvent() const{
-    return events_ ==0;
-  }
-  bool isWrite() const{
-    return events_ & EPOLLOUT;
-  }
-  bool isRead() const{
-    return events_&(EPOLLIN|EPOLLPRI);
-  }
+	bool isInEpoll();
+	void setInEpoll(bool in);
+	int Fd()const;
 
-  void handleEvent();
-  void remove();
 
- private:
-  void update();
-  EventLoop* loop_;
-  int fd_;          // 每个Channel都负责一个fd
-  int events_;      // fd关心的事件
-  int revents_;     // 目前该fd活动的事件
-  bool isInEpoll_;  // 表示fd是否在epoll中，即是否正在监听
+	void setReadCallback(EventCallback cb) { readCallback_ = std::move(cb); }
+	void setWriteCallback(EventCallback cb) { writeCallback_ = std::move(cb); }
+	void setCloseCallback(EventCallback cb) { closeCallback_ = std::move(cb); }
+	void setErrorCallback(EventCallback cb){ errorCallback_ = std::move(cb); }
 
-  EventCallback readCallback_;
-  EventCallback writeCallback_;
-  EventCallback CloseCallback_;
+
+	void enableReading() { events_ |= (EPOLLIN | EPOLLPRI); update(); }
+	
+	void disableReading() { events_ &= ~(EPOLLIN | EPOLLPRI); update(); }
+	void enableWriting() { events_ |= EPOLLOUT; update(); }
+	void disableWriting() { events_ &= ~EPOLLOUT; update(); }
+	void disableAll() {events_ = 0; update();}
+
+	bool isNoneEvent()const { return events_ == 0; }
+	bool isWrite()const {return events_ & EPOLLOUT; }
+	bool isRead()const {return events_& (EPOLLIN | EPOLLPRI); }
+
+	void handleEvent();
+	void remove();
+
+	void tie(const std::shared_ptr<void>&);
+private:
+	void update();
+	void handleEventWithGuard();
+private:
+	EventLoop* loop_;
+
+	int fd_;
+	int events_;
+	int revents_;
+	bool isInEpoll_;
+
+	std::weak_ptr<void> tie_;
+	bool tied_;
+	
+	EventCallback readCallback_;
+	EventCallback writeCallback_;
+	EventCallback closeCallback_;
+	EventCallback errorCallback_;
 };

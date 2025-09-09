@@ -1,11 +1,11 @@
 #include "Socket.h"
 #include <string.h>
 
-#include "InetAddress.h"
+#include "InetAddr.h"
 #include "utils.h"
 #include <fcntl.h>
 
-void Socket::bindAddress(const InetAddress &localaddr) {
+void Socket::bindAddress(const InetAddr &localaddr) {
   int ret = ::bind(sockfd_, (sockaddr *)localaddr.getSockAddr(),
                   sizeof(sockaddr_in));
   perror_if(ret!=0,"bind");
@@ -17,7 +17,7 @@ void Socket::listen() {
   perror_if(ret!=0,"listen");
 }
 
-int Socket::accept(InetAddress *peeraddr) {
+int Socket::accept(InetAddr *peeraddr) {
   sockaddr_in addr;
   socklen_t len = sizeof(addr);
   ::memset(&addr, 0, sizeof(addr));

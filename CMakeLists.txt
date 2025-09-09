@@ -16,7 +16,7 @@ set(HEADER_FILES
   # include/EventLoopThread.h
   # include/EventLoopThreadPool.h
   include/utils.h
-  include/InetAddress.h
+  include/InetAddr.h
   include/Socket.h
   include/Epoll.h
   include/Channel.h
@@ -42,7 +42,8 @@ set(SOURCE_FILES
  
   # src/EventLoopThread.cc
   # src/EventLoopThreadPool.cc
-  src/InetAddress.cpp
+  src/utils.cpp
+  src/InetAddr.cpp
   src/Socket.cpp
   src/Epoll.cpp
   src/Channel.cpp

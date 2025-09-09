@@ -5,16 +5,16 @@
 #include <string>
 
 /// @brief 抽象包装ipv4地址类型
-class InetAddress
+class InetAddr
 {
 public:
     /// @brief 通过端口号和ip地址构造bind()需要的地址结构
     /// @param port  端口号
     /// @param ip ip地址
-    explicit InetAddress(uint16_t port = 0, std::string ip = "127.0.0.1");
+    explicit InetAddr(uint16_t port = 0, std::string ip = "127.0.0.1");
     /// @brief 直接通过sockadrr_in构造bind()需要的地址结构
     /// @param addr socket api ipv4所需的基本地址结构
-    explicit InetAddress(const sockaddr_in &addr)
+    explicit InetAddr(const sockaddr_in &addr)
         : addr_(addr)
     {
     }

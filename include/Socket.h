@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include "utils.h"
 
-class InetAddress;  // 前置声明
+class InetAddr;  // 前置声明
 
 /// @brief 抽象封装socket文件描述符
 class Socket {
@@ -33,14 +33,14 @@ class Socket {
 
   /// @brief 包装bind函数
   /// @param localaddr
-  void bindAddress(const InetAddress &localaddr);
+  void bindAddress(const InetAddr &localaddr);
 
   /// @brief 包装listen()函数
   void listen();
   /// @brief 包装accept()函数
   /// @param peeraddr
   /// @return
-  int accept(InetAddress *peeraddr);
+  int accept(InetAddr *peeraddr);
   /// @brief 包装半关闭shutdown()函数
   void shutdownWrite();
 

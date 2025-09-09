@@ -2,30 +2,29 @@
 #include <functional>
 
 #include "Channel.h"
-#include "InetAddress.h"
+#include "InetAddr.h"
 #include "Socket.h"
 
 class EventLoop;
 
-class Acceptor {
- public:
-  using NewConnectionCallback = std::function<void(int sockfd)>;
+class Acceptor
+{
+public:
+	using NewConnectionCallback = std::function<void(int sockfd,const InetAddr&)>;
+public:
+	Acceptor(const InetAddr& listenAddr, EventLoop* eventloop);
+	~Acceptor();
 
-  Acceptor(const InetAddress& listenAddr, EventLoop* eventLoop);
-  ~Acceptor();
+	void setNewconnectionCallback(const NewConnectionCallback& cb) { newConnectionCallback_ = cb; }
 
-  void setNewconnectionCallback(const NewConnectionCallback& cb) {
-    NewConnectionCallback_ = cb;
-  }
+	void listen();
+private:
+	void handleRead();
 
-  void listen();
+	EventLoop* loop_;
+	Socket acceptSocket_;
+	Channel acceptChannel_;
 
- private:
-  void handleRead();
-  EventLoop* loop_;
-  Socket acceptSocket_;
-  Channel acceptChannel_;
-
-  NewConnectionCallback NewConnectionCallback_;
-  bool listen_;
+	NewConnectionCallback newConnectionCallback_;
+	bool listen_;
 };

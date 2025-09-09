@@ -4,109 +4,139 @@
 #include "EventLoop.h"
 #include "Socket.h"
 
-Connection::Connection(EventLoop* loop, int sockfd)
+Connection::Connection(EventLoop* loop, int sockfd,
+                       const InetAddr& loaclAddr,
+                       const InetAddr& peerAddr)
     : loop_(loop),
       state_(StateE::kConnecting),
       socket_(std::make_unique<Socket>(sockfd)),
       channel_(std::make_unique<Channel>(loop, sockfd)) {
   channel_->setReadCallback([this]() { handleRead(); });
   channel_->setWriteCallback([this]() { handleWrite(); });
+
+  channel_->setCloseCallback([this]() { handleClose(); });
+  channel_->setErrorCallback([this]() { handleError(); });
 }
 
-void Connection::send(Buffer* message) {}
-
-void Connection::send(const void* message,int len){
-
+void Connection::send(Buffer* message) {
+  send(message->peek(), message->readableBytes());
+  message->retrieveAll();
 }
 
-void Connection::send(const std::string& message){
-    if(state_==StateE::kDisconnected
-    ){
-        return;
-    }
+void Connection::send(const void* message, size_t len) {
+  if (state_ == StateE::kDisconnected) return;
 
-    bool faultError = false;
-    ssize_t nwrote = 0;
-    ssize_t reamining = message.size();
-    if(!channel_->isWrite() && outputBuffer_.readableBytes()==0){
-        nwrote = ::write(fd(),message.data(),message.size());
-        if(nwrote >= 0){
-            reamining = message.size() - nwrote;
-            if(reamining == 0){
+  bool faultError = false;
+  ssize_t nwrote = 0;
+  size_t reamining = len;
 
-            }
+  if (!channel_->isWrite() && outputBuffer_.readableBytes() == 0) {
+    nwrote = ::write(fd(), message, len);
+    if (nwrote >= 0) {
+      reamining = len - nwrote;
+      if (reamining == 0) {
+        if (writeCompleteCallback_) {
+          writeCompleteCallback_(shared_from_this());
         }
-        else{
-            nwrote =0;
-            if(errno != EWOULDBLOCK){
-                faultError = true;
-            }
+      }
+    } else {  // nwrote<0
+      nwrote = 0;
+      if (errno != EWOULDBLOCK) {
+        if (errno == EPIPE || errno == ECONNRESET) {
+          faultError = true;
         }
+      }
     }
+  }
 
-    assert(reamining <= message.size());
-    if(!faultError && reamining > 0){
-        outputBuffer_.append(message.data() + nwrote,reamining);
-        if(!channel_->isWrite()){
-            channel_->enableWriting();
-        }
+  assert(static_cast<size_t>(reamining) <= len);
+  if (!faultError && reamining > 0) {
+    outputBuffer_.append(static_cast<const char*>(message) + nwrote, reamining);
+    if (!channel_->isWrite()) {
+      channel_->enableWriting();
     }
+  }
 }
 
-void Connection::connectEstablished(){
-    assert(state_ == StateE::kConnecting);
-    setState(StateE::kConnected);
-    channel_->enableReading();
+void Connection::send(const std::string& message) {
+  send(message.data(), message.size());
 }
 
-void Connection::connectDestroyed(){
-    if(state_ == StateE::kConnected){
-        setState(StateE::kDisconnected);
-        channel_->disableAll();
+void Connection::shutdown() {
+  if (state_ == StateE::kConnected) {
+    setState(StateE::kDisconnecting);
+    if (!channel_->isWrite()) {
+      sockets::shutdownWrite(fd());
     }
-    channel_->remove();
+  }
+}
+void Connection::forceClose() {
+  if (state_ == StateE::kConnected || state_ == StateE::kDisconnecting) {
+    setState(StateE::kDisconnecting);
+    handleClose();
+  }
 }
 
-void Connection::handleRead(){
-    int savedErrno = 0;
-    auto n = inputBuffer_.readFd(fd(),&savedErrno);
-    if(n > 0){
-        messageCallback_(shared_from_this(),&inputBuffer_);
-    }
-    else if(n==0){
-        handleClose();
-    }
-    else{
-        printf("readFd error\n");
-    }
+void Connection::connectEstablished() {
+  assert(state_ == StateE::kConnecting);
+  setState(StateE::kConnected);
+  channel_->tie(shared_from_this());
+  channel_->enableReading();
+
+  connectionCallback_(shared_from_this());
 }
 
-void Connection::handleWrite(){
-    if(!channel_->isWrite()){
-        printf("Connection fd = %d is down,no more writing\n",channel_->Fd());
-        return;
-    }
-    auto n = ::write(fd(),outputBuffer_.peek(),outputBuffer_.readableBytes());
-    if(n > 0){
-        outputBuffer_.retrieve(n);
-        if(outputBuffer_.readableBytes() == 0){
-            channel_->disableWriting();
-        }
-        else{
-            printf("read to write more data\n");
-        }
-    }
-    else{
-        printf("handleWrite error\n");
-    }
-}
-
-void Connection::handleClose(){
-    assert(state_ == StateE::kConnected || state_ == StateE::kDisconnecting);
+void Connection::connectDestroyed() {
+  if (state_ == StateE::kConnected) {
     setState(StateE::kDisconnected);
     channel_->disableAll();
 
-    ConnectionPtr guardThis(shared_from_this());  
-    printf("Connection::handleClose() guardThis(shared_from_this())�� user_count= %ld\n", guardThis.use_count());
-    closeCallback_(guardThis);
+    connectionCallback_(shared_from_this());
+  }
+
+  channel_->remove();
+}
+
+void Connection::handleRead() {
+  int savedErrno = 0;
+  auto n = inputBuffer_.readFd(fd(), &savedErrno);
+  if (n > 0) {
+    messageCallback_(shared_from_this(), &inputBuffer_);
+  } else if (n == 0) {
+    handleClose();
+  } else {
+    printf("readFd error\n");
+  }
+}
+
+void Connection::handleWrite() {
+  if (!channel_->isWrite()) {
+    printf("Connection fd = %d is down,no more writing\n", channel_->Fd());
+    return;
+  }
+  auto n = ::write(fd(), outputBuffer_.peek(), outputBuffer_.readableBytes());
+  if (n > 0) {
+    outputBuffer_.retrieve(n);
+    if (outputBuffer_.readableBytes() == 0) {
+      channel_->disableWriting();
+    } else {
+      printf("read to write more data\n");
+    }
+  } else {
+    printf("handleWrite error\n");
+  }
+}
+
+void Connection::handleClose() {
+  assert(state_ == StateE::kConnected || state_ == StateE::kDisconnecting);
+  setState(StateE::kDisconnected);
+  channel_->disableAll();
+
+  ConnectionPtr guardThis(shared_from_this());
+  closeCallback_(guardThis);
+}
+
+void Connection::handleError() {
+  int err = sockets::getSocketError(channel_->Fd());
+  printf("Connection::handleError err %d", err);
 }
