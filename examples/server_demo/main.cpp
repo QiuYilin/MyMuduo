@@ -1,31 +1,57 @@
-#include <Epoll.h>
-#include <Socket.h>
+#include <Server.h>
+#include <ThreadPool.h>
 #include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <utils.h>
-#include "Server.h"
 
-void onMessage(const ConnectionPtr& conn, Buffer* buf) {
-	std::string msg(buf->retrieveAllAsString());
-	printf("onMessage() %ld bytes reveived:%s\n", msg.size(), msg.c_str());
+#include <functional>
+#include <iostream>
+#include <memory>
+#include <thread>
+using namespace std;
 
-	conn->send(msg);
+class ComptueServer {
+ public:
+  ComptueServer(EventLoop* loop, const InetAddr& listenAddr, int numThreads)
+      : server_(listenAddr, loop), numThreads_(numThreads) {
+    server_.setConnectionCallback(
+        [this](const ConnectionPtr& conn) { onConnection(conn); });
+    server_.setMessageCallback([this](const ConnectionPtr& conn, Buffer* buf) {
+      onMessage(conn, buf);
+    });
+  }
+
+  void start() {
+    threadPool_.start(numThreads_);
+    server_.start();
+  }
+
+ private:
+  void onConnection(const ConnectionPtr& conn) {
+    std::cout << conn->peerAddress().toIpPort() << " -> "
+              << conn->localAddress().toIpPort() << " is "
+              << (conn->connected() ? "UP" : "DOWN") << '\n';
+  }
+
+  void onMessage(const ConnectionPtr& conn, Buffer* buf) {
+    threadPool_.add([&conn, buf]() {
+      int nums = stoi(buf->retrieveAllAsString());
+      long long sum = 0;
+      for (int i = 0; i < nums; ++i) sum += i;
+      cout << "threadPool " << std::this_thread::get_id() << endl;
+      conn->send(to_string(sum));//不在IO线程调用了write() 线程不安全
+    });
+  }
+
+  Server server_;
+  ThreadPool threadPool_;
+  int numThreads_;
+};
+
+int main(int argc, char* argv[]) {
+  EventLoop loop;
+  InetAddr listenAddr(10000);
+  ComptueServer server(&loop, listenAddr, 4);
+
+  server.start();
+  loop.loop();//IO线程，会调用read()
+  return 0;
 }
-
-int main()
-{
-	InetAddr servAddr(10000);
-	EventLoop loop;
-	Server server(servAddr, &loop);
-	server.setMessageCallback([=](const ConnectionPtr& conn, Buffer* buf) {onMessage(conn, buf); });
-	server.setConnectionCallback([](const ConnectionPtr& conn) {
-		if (conn->connected()) {
-			printf("new client fd %d ip:port: %s  connected..\n", conn->fd(), conn->peerAddress().toIpPort().c_str());
-		}
-		});
-	loop.loop();
-
-	return 0;
-}
-

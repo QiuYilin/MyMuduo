@@ -42,7 +42,7 @@ public:
 	void send(Buffer* message);
 	void send(const void* message, size_t len);
 	void send(const std::string& messgage);
-
+  
 	void shutdown();
 
 	void forceClose();

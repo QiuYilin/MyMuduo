@@ -48,6 +48,8 @@ public:
 	void handleEvent();
 	void remove();
 
+	/// @brief 监测Connection是否存活a
+	/// @param  
 	void tie(const std::shared_ptr<void>&);
 private:
 	void update();
@@ -60,8 +62,8 @@ private:
 	int revents_;
 	bool isInEpoll_;
 
-	std::weak_ptr<void> tie_;
-	bool tied_;
+	std::weak_ptr<void> tie_;//监测Connection是否存活b
+	bool tied_;//监测Connection是否存活c
 	
 	EventCallback readCallback_;
 	EventCallback writeCallback_;

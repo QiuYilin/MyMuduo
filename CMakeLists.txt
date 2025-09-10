@@ -7,9 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(INSTALL_CMAKEDIR share/${project_name})
 option(BUILD_EXAMPLES "Build examples" ON)
 
-set(HEADER_FILES
-  # include/Callbacks.h
-  
+set(HEADER_FILES  
   # include/CurrentThread.h
   # include/EPollPoller.h
   
@@ -25,12 +23,10 @@ set(HEADER_FILES
   include/Buffer.h
   include/Callbacks.h
   include/Connection.h
+  include/Server.h
+  include/ThreadPool.h
   # include/Logger.h
   # include/noncopyable.h
-  
-
-  
-  # include/TcpServer.h
   # include/Thread.h
   # include/Timestamp.h
 )
@@ -51,11 +47,9 @@ set(SOURCE_FILES
   src/Acceptor.cpp
   src/Buffer.cpp
   src/Connection.cpp
+  src/Server.cpp
+  src/ThreadPool.cpp
   # src/Logger.cc
-  
-
-  
-  # src/TcpServer.cc
   # src/Thread.cc
   # src/Timestamp.cc
 )
