@@ -8,6 +8,7 @@ Server::Server(const InetAddr& listenAddr, EventLoop* eventloop)
 	,ipPort_(listenAddr.toIpPort())
 	,acceptor_(std::make_unique<Acceptor>(listenAddr,loop_))
 	,loop_threadpool_(std::make_unique<EventLoopThreadPool>(loop_))
+	,compute_threadpool_(std::make_unique<ThreadPool>())
 	,started_(0)
 {
 	acceptor_->setNewconnectionCallback([this](int sockfd, const InetAddr& peerAddr) {newConnection(sockfd, peerAddr); });
@@ -18,29 +19,31 @@ Server::~Server()
 	for (auto& item : connections_) {
 		ConnectionPtr conn(item.second);
 		item.second.reset();
+		//printf("~Server() connections_.reset() later  user_count= %ld\n", item.second.use_count());
 
 		conn->connectDestroyed();
 	}
 }
 
 
-void Server::start(int IOThreadNum, int threadNum)
+void Server::start(int IOThreadNum, int compute_threadNum)
 {
 	if (started_++ == 0)
 	{
 		loop_threadpool_->setThreadNum(IOThreadNum);
 		loop_threadpool_->start();
+		compute_threadpool_->start(compute_threadNum);
 		acceptor_->listen();
 	}
 }
 
 void Server::newConnection(int sockfd, const InetAddr& peerAddr)
 {
-	//轮询 选择一个subloop
 	EventLoop* ioLoop = loop_threadpool_->getNextLoop();
 	InetAddr localAddr(sockets::getLocalAddr(sockfd));
 
-	auto conn = std::make_shared<Connection>(ioLoop, sockfd, localAddr,peerAddr);
+	//auto conn = std::make_shared<Connection>(loop_, sockfd, localAddr,peerAddr);
+	auto conn = std::make_shared<Connection>(ioLoop, sockfd, localAddr,peerAddr);	//��loop_�ĳ� ioLoop
 	connections_[sockfd] = conn;
 
 	conn->setMessageCallback(messageCallback_);
@@ -48,12 +51,13 @@ void Server::newConnection(int sockfd, const InetAddr& peerAddr)
 	conn->setConnectionCallback(connectionCallback_);
 	conn->setWriteCompleteCallback(writeCompleteCallback_);
 
-	ioLoop->runInLoop([conn]() { conn->connectEstablished();});
+	ioLoop->runInLoop([conn]() { conn->connectEstablished();});//ת�Ƶ���ioLoop�߳�������connectEstablished()
 }
 
 void Server::removeConnection(const ConnectionPtr& conn)
 {
 	loop_->runInLoop([this, conn]() { removeConnectionInLoop(conn); });
+
 }
 
 void Server::removeConnectionInLoop(const ConnectionPtr& conn)

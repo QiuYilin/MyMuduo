@@ -11,6 +11,7 @@
 #include"Buffer.h"
 #include"Connection.h"
 #include"EventLoopThreadPool.h"
+#include"ThreadPool.h"
 #include<map>
 class Server
 {
@@ -49,6 +50,7 @@ private:
 	connectionMap connections_;
 
 	std::unique_ptr<EventLoopThreadPool> loop_threadpool_;
+	std::unique_ptr<ThreadPool> compute_threadpool_;
 	std::atomic_int32_t started_;
 
 	WriteCompleteCallback writeCompleteCallback_;
