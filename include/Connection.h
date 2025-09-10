@@ -40,9 +40,9 @@ public:
 	bool disconnected() const { return state_ == StateE::kDisconnected; }
 	void setState(StateE state) { state_ = state; }
 	void send(Buffer* message);
-	void send(const void* message, size_t len);
+	void send(const char* message, size_t len);
 	void send(const std::string& messgage);
-  
+
 	void shutdown();
 
 	void forceClose();
@@ -68,6 +68,11 @@ private:
 	void handleWrite();
 	void handleClose();
 	void handleError();
+
+	/// @brief 跨线程调用，转移到控制该socket的IO线程去调用send
+	/// @param message 
+	/// @param len 
+	void sendInLoop(const char* message, size_t len);
 private:
 	EventLoop* loop_;
 
