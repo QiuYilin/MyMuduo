@@ -10,8 +10,6 @@ option(BUILD_EXAMPLES "Build examples" ON)
 set(HEADER_FILES  
   # include/CurrentThread.h
   # include/EPollPoller.h
-  
-  # include/EventLoopThread.h
   # include/EventLoopThreadPool.h
   include/utils.h
   include/InetAddr.h
@@ -25,6 +23,8 @@ set(HEADER_FILES
   include/Connection.h
   include/Server.h
   include/ThreadPool.h
+  include/EventLoopThread.h
+  include/EventLoopThreadPool.h
   # include/Logger.h
   # include/noncopyable.h
   # include/Thread.h
@@ -36,7 +36,6 @@ set(SOURCE_FILES
   # src/DefaultPoller.cc
   # src/EPollPoller.cc
  
-  # src/EventLoopThread.cc
   # src/EventLoopThreadPool.cc
   src/utils.cpp
   src/InetAddr.cpp
@@ -49,6 +48,8 @@ set(SOURCE_FILES
   src/Connection.cpp
   src/Server.cpp
   src/ThreadPool.cpp
+  src/EventLoopThread.cpp
+  src/EventLoopThreadPool.cpp
   # src/Logger.cc
   # src/Thread.cc
   # src/Timestamp.cc

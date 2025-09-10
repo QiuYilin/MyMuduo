@@ -13,9 +13,8 @@ class Connection:public std::enable_shared_from_this<Connection>
 public:
 	enum class StateE { kDisconnected, kConnecting, kConnected, kDisconnecting };
 public:
-	//Connection(EventLoop* loop,int sockfd);
 	Connection(EventLoop* loop, int sockfd,const InetAddr& loaclAddr,const InetAddr& peerAddr);
-
+	~Connection();
 	void setMessageCallback(const MessageCallback& cb)
 	{
 		messageCallback_ = cb;
@@ -38,7 +37,6 @@ public:
 
 	bool connected() const { return state_ == StateE::kConnected; }
 	bool disconnected() const { return state_ == StateE::kDisconnected; }
-	void setState(StateE state) { state_ = state; }
 	void send(Buffer* message);
 	void send(const char* message, size_t len);
 	void send(const std::string& messgage);
@@ -61,6 +59,7 @@ public:
 	{
 		return &outputBuffer_;
 	}
+	EventLoop* getLoop() const { return loop_; }
 
 	int fd()const { return socket_->fd(); }
 private:
@@ -69,10 +68,11 @@ private:
 	void handleClose();
 	void handleError();
 
-	/// @brief 跨线程调用，转移到控制该socket的IO线程去调用send
-	/// @param message 
-	/// @param len 
+	void shutdownInLoop();
+	void forceCloseInLoop();
 	void sendInLoop(const char* message, size_t len);
+
+	void setState(StateE state) { state_ = state; }
 private:
 	EventLoop* loop_;
 
@@ -91,8 +91,6 @@ private:
 
 	Buffer inputBuffer_;
 	Buffer outputBuffer_;
-
-
 };
 
 using ConnectionPtr = std::shared_ptr<Connection>;

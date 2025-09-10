@@ -1,9 +1,8 @@
 #include"EventLoop.h"
 #include"Channel.h"
 #include"Epoll.h"
+#include<signal.h>
 
-/// @brief 创建wakeupfd 用来唤醒处理回调任务操作
-/// @return 
 int createEventfd()
 {
 	int evtfd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
@@ -13,6 +12,17 @@ int createEventfd()
 	}
 	return evtfd;
 }
+
+class IgnoreSigPipe
+{
+public:
+	IgnoreSigPipe()
+	{
+		::signal(SIGPIPE, SIG_IGN);
+	}
+};
+
+IgnoreSigPipe initObj;
 
 EventLoop::EventLoop()
 	:threadId_(std::this_thread::get_id())
@@ -38,10 +48,11 @@ void EventLoop::loop()
 	quit_ = false;
 	while (!quit_) {
 		activeChannels_.clear();
-		ep_->epoll_wait(activeChannels_);
+		ep_->epoll_wait(activeChannels_,10000);
 		for (auto& active : activeChannels_) {
 			active->handleEvent();
 		}
+
 		doPendingFunctors();	
 	}
 }
@@ -62,9 +73,7 @@ void EventLoop::quit() {
 
 void EventLoop::runInLoop(Functor cb)
 {
-	printf("Call EventLoop::runInLoop() when not in the IO thread\n");
 	if (isInLoopThread()) {
-		printf(" EventLoop::runInLoop() In this IO thread, directly call the callback function\n");
 		cb();
 	}
 	else {
@@ -74,11 +83,11 @@ void EventLoop::runInLoop(Functor cb)
 
 void EventLoop::queueInLoop(Functor cb)
 {
-	printf("Call EventLoop::queueInLoop() when not in the IO thread\n");
 	{
-		std::unique_lock<std::mutex> lock(mutex_);
-		pendingFunctors_.emplace_back(std::move(cb));
+		std::lock_guard<std::mutex> lock(mutex_);
+		pendingFunctors_.push_back(std::move(cb));
 	}
+
 	if (!isInLoopThread() || callingPendingFunctors_) {
 		wakeup();
 	}
@@ -86,18 +95,15 @@ void EventLoop::queueInLoop(Functor cb)
 
 void EventLoop::wakeup()
 {
-	printf("need to wake up the IO thread, call EventLoop:: wakeup()\n");
 	uint64_t one = 1;
 	ssize_t n = write(wakeupFd_, &one, sizeof(one));
-	if (n != sizeof(one))
-	{
+	if (n != sizeof(one)){
 		printf("EventLoop wakeup write %lu bytes instead of 8 \n", n);
 	}
 }
 
 void EventLoop::handleRead()
 {
-	printf("Respond to wake-up of wakeup() by using EventLoop::handleRead()\n");
 	uint64_t one = 1;
 	auto n = ::read(wakeupFd_, &one, sizeof(one));
 	if (n != sizeof(one)){
@@ -108,17 +114,16 @@ void EventLoop::handleRead()
 void EventLoop::doPendingFunctors()	
 {
 	std::vector<Functor> functors;
-	callingPendingFunctors_ = true;//标识当前loop是否有需要执行的回调操作
-    //把functors转移到局部的functors,这样在执行回调时不用加锁，不影响loop注册回调任务
+	callingPendingFunctors_ = true;
 	{
-		std::unique_lock<std::mutex> lock(mutex_);
+		std::lock_guard<std::mutex> lock(mutex_);
 		functors.swap(pendingFunctors_);
 	}
 
 	for (const auto& functor : functors) {
-		printf("Execute the callback function functor() in EventLoop:: doPendingFunctors()\n");
-		functor();
+		functor();	
 	}
+
 	callingPendingFunctors_ = false;
 }
 

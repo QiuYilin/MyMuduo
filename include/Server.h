@@ -10,6 +10,7 @@
 #include"Acceptor.h"
 #include"Buffer.h"
 #include"Connection.h"
+#include"EventLoopThreadPool.h"
 #include<map>
 class Server
 {
@@ -19,7 +20,7 @@ public:
 	Server(const InetAddr& serverAddr, EventLoop* eventloop);
 	~Server();
 
-	void start();
+	void start(int IOThreadNum=0,int threadNum=0);
 	void setMessageCallback(const MessageCallback& cb)
 	{
 		messageCallback_ = cb;
@@ -38,6 +39,7 @@ private:
 	void newConnection(int sockfd,const InetAddr& peerAddr);
 	void removeConnection(const ConnectionPtr& conn);
 
+	void removeConnectionInLoop(const ConnectionPtr& conn);
 private:
 	EventLoop* loop_;
 
@@ -45,6 +47,9 @@ private:
 
 	std::unique_ptr<Acceptor> acceptor_;
 	connectionMap connections_;
+
+	std::unique_ptr<EventLoopThreadPool> loop_threadpool_;
+	std::atomic_int32_t started_;
 
 	WriteCompleteCallback writeCompleteCallback_;
 	MessageCallback messageCallback_;
